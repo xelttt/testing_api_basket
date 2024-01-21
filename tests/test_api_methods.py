@@ -10,8 +10,17 @@ class TestApiMethods(BaseApiMethods):
 
     def test_admin_create(self):
         response = self.create_object_in_cart(random.randint(2, 9))
-        assert response[0] == 200, GlobalErrorMessages.WRONG_STATUS_CODE.value
-        assert response[1] == True
+        assert response[1] == 200, GlobalErrorMessages.WRONG_STATUS_CODE.value
+        assert response[0] == True
+
+    def test_check_count_of_items_in_cart(self):
+        self.delete_all_products()
+        x = random.randint(1, 10)
+        self.create_object_in_cart(x)
+        products = self.get_all_products()
+        product = set(item["Id"] for item in products)
+        count = len(product)
+        assert x == count, 'Количество товаров не соответствует числу, указанному при генерации корзины'
 
     def test_shopping_cart_header(self):
         response = requests.get(f"{BASE_URL}/ShoppingCart/header")
@@ -39,17 +48,25 @@ class TestApiMethods(BaseApiMethods):
         response = requests.get(f"{BASE_URL}/ShoppingCart/products")
         assert response.status_code == 204, GlobalErrorMessages.WRONG_STATUS_CODE.value
 
-    def test_shopping_cart_product(self):
-        self.create_object_in_cart(value=1)
+    def test_deleted_shopping_cart_product(self):
+        self.delete_all_products()
+        self.create_object_in_cart(1)
         get_products = self.get_all_products()
-        products_list = get_products[1]
-        product_id = products_list[0].get("Id")
+        product_id = get_products[0]["Id"]
         get_header = self.header()
-        user_guid = get_header.get("UserGuid")
-        data = {"ProductId": product_id, "UserGuid": user_guid}
-        deleted = requests.delete(f"{BASE_URL}/ShoppingCart/products", json=data)
-        assert deleted.status_code == 200, GlobalErrorMessages.WRONG_STATUS_CODE.value
-        assert "Ваша корзина удалена" in deleted.text
+        used_guid = get_header["UsedGuid"]
+        data = {"ProductId": product_id, "UserGuid": used_guid}
+        response = requests.delete(f"{BASE_URL}/ShoppingCart/product", json=data)
+        assert response.status_code == 200, GlobalErrorMessages.WRONG_STATUS_CODE.value
+        assert "Товар удален" in response.text
+
+    def test_deleted_product_negative_data(self):
+        self.create_object_in_cart(1)
+        product_id = random.randint(1, 9999999999)
+        user_guid = self.generate_random_string(36)
+        data = {"ProductId": product_id, "UsedGuid": user_guid}
+        response = requests.delete(f"{BASE_URL}/ShoppingCart/product", json=data)
+        assert response.status_code == 400, GlobalErrorMessages.WRONG_STATUS_CODE.value
 
     def test_shopping_cart_baskedsummary(self):
         response = requests.get(f"{BASE_URL}/ShoppingCart/baskedsummary")
@@ -62,24 +79,24 @@ class TestApiMethods(BaseApiMethods):
         validate(response.json(), PRODUCTS_SCHEMA)
 
     def test_shopping_cart_quantityinc(self):
+        self.delete_all_products()
         self.create_object_in_cart(1)
         get_products = self.get_all_products()
-        products_list = get_products[1]
-        product_id = products_list[0].get("Id")
+        product_id = get_products[0]["Id"]
         get_header = self.header()
-        user_guid = get_header.get("UserGuid")
+        user_guid = get_header["UsedGuid"]
         data = {"ProductId": product_id,
                 "UserGuid": user_guid}
         response = requests.post(f"{BASE_URL}/ShoppingCart/quantityinc", json=data)
         assert response.status_code == 200, GlobalErrorMessages.WRONG_STATUS_CODE.value
+        assert "Количество товара было увеличено" in response.text
 
     def test_shopping_cart_quantitydec(self):
         self.create_object_in_cart(1)
         get_products = self.get_all_products()
-        products_list = get_products[1]
-        product_id = products_list[0].get("Id")
+        product_id = get_products[0]["Id"]
         get_header = self.header()
-        user_guid = get_header.get("UserGuid")
+        user_guid = get_header["UsedGuid"]
         data = {"ProductId": product_id,
                 "UserGuid": user_guid}
         response = requests.post(f"{BASE_URL}/ShoppingCart/quantityinc", json=data)
@@ -88,23 +105,21 @@ class TestApiMethods(BaseApiMethods):
     def test_shopping_cart_change_quantity(self):
         self.create_object_in_cart(1)
         get_products = self.get_all_products()
-        products_list = get_products[1]
-        product_id = products_list[0].get("Id")
-        user_guid = self.header().get("UserGuid")
-        value = 10
+        product_id = get_products[0]["Id"]
+        user_guid = self.header()["UsedGuid"]
+        value = random.randint(2, 10)
         data = {"ProductId": product_id,
                 "UserGuid": user_guid,
                 "Value": value}
         response = requests.post(f"{BASE_URL}/ShoppingCart/changequantity", json=data)
         check_quantity = self.get_all_products()
-        quantity_list = check_quantity[1]
-        quantity = quantity_list[0].get("Quantity")
+        quantity = check_quantity[0]["Quantity"]
         assert response.status_code == 200, GlobalErrorMessages.WRONG_STATUS_CODE.value
         assert quantity == value
 
     def test_shopping_cart_discount(self):
         self.create_object_in_cart(1)
-        used_guid = self.header().get("UsedGuid")
+        used_guid = self.header()["UsedGuid"]
         promo_code = "hawkingbros"
         data = {"DiscountName": promo_code, "UsedGuid": used_guid}
         response = requests.post(f"{BASE_URL}ShoppingCart/discount", json=data)
