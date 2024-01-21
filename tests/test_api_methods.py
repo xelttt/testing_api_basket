@@ -99,8 +99,9 @@ class TestApiMethods(BaseApiMethods):
         user_guid = get_header["UsedGuid"]
         data = {"ProductId": product_id,
                 "UserGuid": user_guid}
-        response = requests.post(f"{BASE_URL}/ShoppingCart/quantityinc", json=data)
+        response = requests.post(f"{BASE_URL}/ShoppingCart/quantitydec", json=data)
         assert response.status_code == 200, GlobalErrorMessages.WRONG_STATUS_CODE.value
+        assert "Количество товара было уменьшено" in response.text
 
     def test_shopping_cart_change_quantity(self):
         self.create_object_in_cart(1)
@@ -115,7 +116,7 @@ class TestApiMethods(BaseApiMethods):
         check_quantity = self.get_all_products()
         quantity = check_quantity[0]["Quantity"]
         assert response.status_code == 200, GlobalErrorMessages.WRONG_STATUS_CODE.value
-        assert quantity == value
+        assert quantity == value, 'Количество товара отличается от указанного в запросе'
 
     def test_shopping_cart_discount(self):
         self.create_object_in_cart(1)
