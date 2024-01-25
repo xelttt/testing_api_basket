@@ -1,11 +1,9 @@
-import json
+from jsonschema import validate
 import random
 import requests
-from jsonschema import validate
 from schemas.schemas import HEADER_SCHEMA, PRODUCTS_SCHEMA, DELETED_SCHEMA, BASKEDSUMMARY_SCHEMA
 from base_classes import BASE_URL, BaseApiMethods
 from enums.global_enums import GlobalErrorMessages
-
 
 class TestApiMethods(BaseApiMethods):
 
@@ -42,7 +40,7 @@ class TestApiMethods(BaseApiMethods):
         self.create_object_in_cart(1)
         response = requests.get(f"{BASE_URL}/ShoppingCart/products")
         assert response.status_code == 200, GlobalErrorMessages.WRONG_STATUS_CODE.value
-        validate(response.json(), PRODUCTS_SCHEMA)
+        validate(response, PRODUCTS_SCHEMA)
 
     def test_deleted_shopping_cart_products(self):
         self.create_object_in_cart(random.randint(2, 5))
