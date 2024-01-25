@@ -1,0 +1,8 @@
+services:
+  tests:
+    build:
+      context: "."
+      dockerfile: "./Dockerfile"
+    command: pytest /var/tests/tests
+    volumes:
+      - .:/var/tests

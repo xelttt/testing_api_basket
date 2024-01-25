@@ -23,9 +23,17 @@ class BaseApiMethods:
         response = requests.get(f"{BASE_URL}/ShoppingCart/header")
         return response.json()
 
+    def add_promo_code(self):
+        response = requests.post(f"{BASE_URL}/ShoppingCart/discount")
+        return response.json()
+
     def delete_promo_code(self):
         response = requests.delete(f"{BASE_URL}/ShoppingCart/discount")
         return response.status_code
+
+    def get_baskedsummary(self):
+        response = requests.get(f"{BASE_URL}/ShoppingCart/baskedsummary")
+        return response.json()
 
     def generate_random_string(self, length):
         generate = string.ascii_letters + string.digits
